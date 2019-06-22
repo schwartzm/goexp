@@ -1,4 +1,19 @@
 package main
+/*
+
+*/
+
+/*
+wfapp is a commandline for the wordfrequency functionality. 
+
+Run like:
+
+go run wfapp.go --infile someFile.txt
+
+E.g.,
+
+go run wfapp.go --infile wfmain.go
+*/
 
 import (
 	"flag"
