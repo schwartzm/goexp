@@ -1,4 +1,5 @@
 package wordfrequency
+
 /*
 Wordfrequency reports the count of each unique word in a file.
 Copyright (C) 2018  Michael Schwartz
@@ -18,15 +19,27 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 /*
-Wordfrequency reports the count of each unique word in a file.
+Wordfrequency reports the count of each unique word in a structure
+ with the io.reader interface, such as a file handle from os.open().
 */
 
 import (
 	"bufio"
-	"os"
+	"io"
 	"regexp"
 	"sort"
 	"strings"
+)
+
+type SortDir int
+
+/*
+Sort direction options. Defaults to not sorted.
+*/
+const (
+	SORT_DESC SortDir = 0
+	SORT_ASC  SortDir = 1
+	SORT_NOT  SortDir = 2
 )
 
 type fileWords struct {
@@ -35,8 +48,8 @@ type fileWords struct {
 }
 
 type Word struct {
-  Word string
-  Count int
+	Word  string
+	Count int
 }
 
 /*
@@ -45,30 +58,24 @@ The structure contains the path to analyzed file and
 a map of the frequency of each word.
 */
 type FileWords struct {
-  File string
-  Words []Word 
+	File  string
+	Words []Word
 }
 
 var keep = regexp.MustCompile("^\\w+$")
 
 /*
-GetWordFrequency returns the count of each unique word in a file by returning
-a FileWords structure. Caller will pass in a file path, a decision to sort 
-the frequencies in ASC or DESC., and a minimum number of characters that must be 
+GetWordFrequency returns the count of each unique word in a data source by returning
+a FileWords structure. Caller will pass in one of the sort directions (e.g., wf.SORT_DESC)
+, and a minimum number of characters that must be
 be present in a word for it to be included.
 */
-func GetWordFrequency(inFile string, sortDesc bool, minWordLength int) (*FileWords, error) {
-	file, err := os.Open(inFile)
-	if err != nil {
-		return nil, err
-	}
+func GetWordFrequency(data io.Reader, sortDir SortDir, minWordLength int) (*FileWords, error) {
 
-	fw := &fileWords{File: inFile}
+	fw := &fileWords{File: "placeholder"}
 	fw.Words = make(map[string]int)
 
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(data)
 	scanner.Split(bufio.ScanWords)
 
 	for scanner.Scan() {
@@ -82,46 +89,47 @@ func GetWordFrequency(inFile string, sortDesc bool, minWordLength int) (*FileWor
 		}
 	}
 
-	return sortByFrequency(fw, "DESC"), nil
+	return sortByFrequency(fw, sortDir), nil
 }
 
 type word struct {
-  word string
-  count int
+	word  string
+	count int
 }
 
 type byCount []word
 
-func (c byCount) Len() int {return len(c)}
-func (c byCount) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
+func (c byCount) Len() int           { return len(c) }
+func (c byCount) Swap(i, j int)      { c[i], c[j] = c[j], c[i] }
 func (c byCount) Less(i, j int) bool { return c[i].count < c[j].count }
 
 /*
 sortByFrequency sorts a map of counts, where key is the item being
 counted and v is the count of each word. Sorts ASC or DESC.
 */
-func sortByFrequency(fw *fileWords, sortDir string)(*FileWords) {
-  var words byCount
+func sortByFrequency(fw *fileWords, sortDir SortDir) *FileWords {
+	var words byCount
 
-  for k,v := range fw.Words {
-    words = append(words, word{ k, v })
-  }
+	for k, v := range fw.Words {
+		words = append(words, word{k, v})
+	}
 
-  switch sortDir {
-    case "DESC":
-      sort.Sort(sort.Reverse(byCount(words)))
-    case "ASC":
-      sort.Sort(byCount(words))
-    default:
-      // not sorted
-  }
+	switch sortDir {
+	case SORT_DESC:
+		sort.Sort(sort.Reverse(byCount(words)))
+	case SORT_ASC:
+		sort.Sort(byCount(words))
+	case SORT_NOT:
+		// not sorted
+	default:
+		// not sorted
+	}
 
-  fwRet := FileWords{ File: fw.File }
-  
-  for i := 0; i < len(words); i++ {
-   fwRet.Words = append(fwRet.Words, Word{ words[i].word, words[i].count })
-  }
+	fwRet := FileWords{File: fw.File}
 
-  return &fwRet
+	for i := 0; i < len(words); i++ {
+		fwRet.Words = append(fwRet.Words, Word{words[i].word, words[i].count})
+	}
+
+	return &fwRet
 }
-
