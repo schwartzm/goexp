@@ -9,7 +9,8 @@ import (
 
 func TestGetWordFrequency(t *testing.T) {
 	input := bytes.NewBufferString(
-		"hello WORLD Hello world World hello cats HELLO cats dogs")
+		`hello WORLD Hello so world i at 
+		World hello cats HELLO cats dogs`)
 
 	/* NOTE: DeepEqual nuance: Can't compare [4]Word with
 	 * []Word, because Array != Slice.
