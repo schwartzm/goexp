@@ -9,17 +9,25 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
-var flagPath string
+var csvPath string
+var maxTime int
 
 func init() {
-	flag.StringVar(&flagPath, "config", "problems.csv", "Path to CSV configuration file")
+	flag.StringVar(&csvPath, "config", "problems.csv", "Path to CSV configuration file")
+	flag.IntVar(&maxTime, "maxtime", 15, "Maximum quiz time in seconds")
 	flag.Parse()
 }
 
+func timer(max int, c chan int) {
+	time.Sleep(time.Duration(max) * time.Second)
+	c <- max
+}
+
 func main() {
-	fmt.Println("Using config file ", flagPath)
+	fmt.Println("Using config file ", csvPath)
 	in, err := os.Open("problems.csv")
 	if err != nil {
 		log.Fatal(err)
@@ -31,9 +39,18 @@ func main() {
 	}
 
 	reader := bufio.NewReader(os.Stdin)
-
+	c := make(chan int)
+	go timer(maxTime, c)
 	correct := 0
 	for _, v := range ques {
+		select {
+		case t := <-c: // t is assinged the value received in the channel c.
+			fmt.Println("\nTimes up! ", t, " seconds")
+			return
+		default:
+			// proceed as normal
+		}
+
 		fmt.Printf("What is %v? ", v[0])
 		ans, _ := reader.ReadString('\n')
 		ans = strings.Replace(ans, "\n", "", -1)
@@ -46,7 +63,6 @@ func main() {
 		if err != nil {
 			log.Fatal("Cannot interpret CSV value %v for question %v.", v[1], v[0])
 		}
-		fmt.Printf("user: %v, real: %v\n", user_answer, real_answer)
 		if user_answer == real_answer {
 			correct = correct + 1
 		}
