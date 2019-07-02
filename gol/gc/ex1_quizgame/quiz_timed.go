@@ -32,6 +32,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer in.Close()
 	r := csv.NewReader(in)
 	ques, err := r.ReadAll()
 	if err != nil {

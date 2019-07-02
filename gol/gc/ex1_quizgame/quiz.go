@@ -24,6 +24,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer in.Close()
 	r := csv.NewReader(in)
 	ques, err := r.ReadAll()
 	if err != nil {
@@ -46,7 +47,6 @@ func main() {
 		if err != nil {
 			log.Fatal("Cannot interpret CSV value %v for question %v.", v[1], v[0])
 		}
-		fmt.Printf("user: %v, real: %v\n", user_answer, real_answer)
 		if user_answer == real_answer {
 			correct = correct + 1
 		}
